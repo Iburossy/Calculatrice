@@ -502,7 +502,29 @@ namespace Calculatrice
 
         private void button2_Click(object sender, EventArgs e)
         {
-            
+            if (!string.IsNullOrEmpty(txtTotal.Text))
+            {
+                // Supprime le dernier caractère
+                txtTotal.Text = txtTotal.Text.Remove(txtTotal.Text.Length - 1, 1);
+            }
+        }
+
+        private void button1_Click(object sender, EventArgs e)
+        {
+            if (double.TryParse(txtTotal.Text, out double degrees))
+            {
+                // Conversion degré -> radians  
+                double radians = degrees * Math.PI / 180.0;
+                double resultat = Math.Cos(radians);
+
+                // Afficher le résultat
+                txtTotal.Text = resultat.ToString();
+            }
+            else
+            {
+                MessageBox.Show("Veuillez entrer un angle valide (en degrés) pour le cosinus.");
+            }
+
         }
     }
 }

@@ -55,7 +55,7 @@
             btndot = new Button();
             btnpuissance = new Button();
             button1 = new Button();
-            btndel = new Button();
+            button2 = new Button();
             SuspendLayout();
             // 
             // txtTotal
@@ -347,16 +347,17 @@
             button1.TabIndex = 28;
             button1.Text = "cos";
             button1.UseVisualStyleBackColor = true;
+            button1.Click += button1_Click;
             // 
-            // btndel
+            // button2
             // 
-            btndel.Location = new Point(580, 735);
-            btndel.Name = "btndel";
-            btndel.Size = new Size(89, 58);
-            btndel.TabIndex = 29;
-            btndel.Text = "⌫";
-            btndel.UseVisualStyleBackColor = true;
-            btndel.Click += button2_Click;
+            button2.Location = new Point(580, 735);
+            button2.Name = "button2";
+            button2.Size = new Size(89, 58);
+            button2.TabIndex = 29;
+            button2.Text = "⌫";
+            button2.UseVisualStyleBackColor = true;
+            button2.Click += button2_Click;
             // 
             // btnBackspace
             // 
@@ -364,7 +365,7 @@
             AutoScaleMode = AutoScaleMode.Font;
             BackColor = SystemColors.ControlDarkDark;
             ClientSize = new Size(1020, 976);
-            Controls.Add(btndel);
+            Controls.Add(button2);
             Controls.Add(button1);
             Controls.Add(btnpuissance);
             Controls.Add(btndot);
@@ -430,6 +431,6 @@
         private Button btndot;
         private Button btnpuissance;
         private Button button1;
-        private Button btndel;
+        private Button button2;
     }
 }
