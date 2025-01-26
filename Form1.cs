@@ -10,6 +10,9 @@ namespace Calculatrice
         // Variables internes pour l'ancienne logique (on peut les garder si utile)
         private double firstNumber = 0;
         private string currentOperator = "";
+        // Historique (liste des opérations) :
+        private List<string> history = new List<string>();
+
         private bool isOperatorClicked = false;
 
         public btnBackspace()
@@ -53,20 +56,17 @@ namespace Calculatrice
             txtTotal.Text += ")";
         }
 
-        // Fonctions "sin", "cos", "tan", "log", "sqrt" :
-        // On insère directement "sin(" ou "cos(" ... 
-        // L'utilisateur finira la parenthèse et cliquera sur "="
+        // =============================
+        //  EXEMPLES DE FONCTIONS TRIGO
+        // =============================
 
-        // Sinus en degrés
+        // Sinus en degrés (ancien code)
         private void btnOct_Click(object sender, EventArgs e)
         {
             if (double.TryParse(txtTotal.Text, out double degrees))
             {
-                // Conversion degré -> radians
                 double radians = degrees * Math.PI / 180.0;
                 double resultat = Math.Sin(radians);
-
-                // Afficher le résultat
                 txtTotal.Text = resultat.ToString();
             }
             else
@@ -75,18 +75,13 @@ namespace Calculatrice
             }
         }
 
-
-
-        // CALCUL DU COS
+        // Cosinus (ancien code)
         private void btnDec_Click(object sender, EventArgs e)
         {
             if (double.TryParse(txtTotal.Text, out double degrees))
             {
-                // Conversion degré -> radians  
                 double radians = degrees * Math.PI / 180.0;
                 double resultat = Math.Cos(radians);
-
-                // Afficher le résultat
                 txtTotal.Text = resultat.ToString();
             }
             else
@@ -95,28 +90,12 @@ namespace Calculatrice
             }
         }
 
+        private void btnsin_Click(object sender, EventArgs e) => txtTotal.Text += "sin(";
+        private void btncos_Click(object sender, EventArgs e) => txtTotal.Text += "cos(";
+        private void btntan_Click(object sender, EventArgs e) => txtTotal.Text += "tan(";
+        private void btnlog_Click(object sender, EventArgs e) => txtTotal.Text += "log(";
 
-        private void btnsin_Click(object sender, EventArgs e)
-        {
-            txtTotal.Text += "sin(";
-        }
-
-        private void btncos_Click(object sender, EventArgs e)
-        {
-            txtTotal.Text += "cos(";
-        }
-
-        private void btntan_Click(object sender, EventArgs e)
-        {
-            txtTotal.Text += "tan(";
-        }
-
-        private void btnlog_Click(object sender, EventArgs e)
-        {
-            txtTotal.Text += "log(";
-        }
-
-        // Ici on appelle "btnBin", mais on va lui faire insérer "sqrt(" 
+        // "sqrt(" via btnBin
         private void btnBin_Click(object sender, EventArgs e)
         {
             txtTotal.Text += "sqrt(";
@@ -141,6 +120,16 @@ namespace Calculatrice
 
                 double result = EvaluateExpression(expression);
                 txtTotal.Text = result.ToString();
+
+                // AJOUT POUR L'HISTORIQUE :
+                string historiqueEntree = expression + " = " + result;
+                history.Add(historiqueEntree);
+
+                // Limiter à 5 entrées max :
+                if (history.Count > 5)
+                {
+                    history.RemoveAt(0); // supprime la plus ancienne
+                }
             }
             catch (Exception ex)
             {
@@ -151,11 +140,6 @@ namespace Calculatrice
         // =============================
         //  METHODE DE PARSING & EVAL
         // =============================
-        /// <summary>
-        /// Evalue une expression mathématique contenant 
-        /// +, -, *, /, ^, sin, cos, tan, log, sqrt, et parenthèses.
-        /// Les fonctions trigonométriques sont traitées en DEGRES.
-        /// </summary>
         private double EvaluateExpression(string expression)
         {
             // 1) Convertir l'expression en liste de tokens
@@ -173,18 +157,12 @@ namespace Calculatrice
         // ------------------------------
         private List<string> Tokenize(string expr)
         {
-            // On va lire caractère par caractère et regrouper en tokens
-            // ex: "sin(45) + 2.5" -> ["sin","(","45",")","+","2.5"]
-            // On sépare aussi les opérateurs et parenthèses
-            // NB : on admet que l'utilisateur peut mettre des espaces, on va les ignorer.
-
             List<string> tokens = new List<string>();
             int i = 0;
             while (i < expr.Length)
             {
                 char c = expr[i];
 
-                // Ignorer les espaces
                 if (char.IsWhiteSpace(c))
                 {
                     i++;
@@ -197,8 +175,8 @@ namespace Calculatrice
                     tokens.Add(c.ToString());
                     i++;
                 }
-                // Opérateurs simples
-                else if ("+-*/^".IndexOf(c) >= 0)
+                // AJOUT : on inclut maintenant aussi '%'
+                else if ("+-*/^%".IndexOf(c) >= 0)
                 {
                     tokens.Add(c.ToString());
                     i++;
@@ -206,7 +184,6 @@ namespace Calculatrice
                 // Fonctions (sin, cos, tan, log, sqrt)
                 else if (char.IsLetter(c))
                 {
-                    // Récupérer la suite de lettres (ex: "sin", "cos", "sqrt"…)
                     int start = i;
                     while (i < expr.Length && char.IsLetter(expr[i]))
                         i++;
@@ -253,10 +230,6 @@ namespace Calculatrice
         // ------------------------------
         private List<string> ShuntingYard(List<string> tokens)
         {
-            // Convertit la liste de tokens en notation postfixée (RPN).
-            // - on gère la priorité des opérateurs
-            // - on place les fonctions avant l'argument
-            // - on gère les parenthèses
             Stack<string> stack = new Stack<string>();
             List<string> output = new List<string>();
 
@@ -264,25 +237,20 @@ namespace Calculatrice
             {
                 if (IsNumber(token))
                 {
-                    // Les nombres vont directement dans la sortie
                     output.Add(token);
                 }
                 else if (IsFunction(token))
                 {
-                    // Les fonctions vont sur la pile
                     stack.Push(token);
                 }
                 else if (IsOperator(token))
                 {
-                    // Tant qu'il y a un opérateur/fonction au sommet de la pile
-                    // avec une priorité >= au token courant, on le pop
                     while (stack.Count > 0 &&
                            (IsOperator(stack.Peek()) || IsFunction(stack.Peek())) &&
                            (GetPrecedence(stack.Peek()) >= GetPrecedence(token)))
                     {
                         output.Add(stack.Pop());
                     }
-                    // puis on push l'opérateur courant
                     stack.Push(token);
                 }
                 else if (token == "(")
@@ -291,7 +259,6 @@ namespace Calculatrice
                 }
                 else if (token == ")")
                 {
-                    // Dépiler jusqu'à "("
                     while (stack.Count > 0 && stack.Peek() != "(")
                     {
                         output.Add(stack.Pop());
@@ -302,7 +269,6 @@ namespace Calculatrice
                     // Pop la "("
                     stack.Pop();
 
-                    // Si juste après on avait une fonction au sommet, on la pop aussi
                     if (stack.Count > 0 && IsFunction(stack.Peek()))
                     {
                         output.Add(stack.Pop());
@@ -314,7 +280,6 @@ namespace Calculatrice
                 }
             }
 
-            // Vider la pile
             while (stack.Count > 0)
             {
                 string top = stack.Pop();
@@ -325,9 +290,10 @@ namespace Calculatrice
 
             return output;
         }
+
         private void txtTotal_TextChanged(object sender, EventArgs e)
         {
-            // Laissez vide ou placez ici le code à exécuter lors du changement de texte
+            // Laissez vide ou placez ici du code si vous souhaitez réagir au changement de texte
         }
 
         // ------------------------------
@@ -366,33 +332,29 @@ namespace Calculatrice
                         case "^":
                             result = Math.Pow(a, b);
                             break;
+                        // AJOUT : gestion du modulo
+                        case "%":
+                            if (b == 0)
+                                throw new DivideByZeroException("Modulo par zéro !");
+                            result = a % b;
+                            break;
                     }
                     stack.Push(result);
                 }
                 else if (IsFunction(token))
                 {
-                    // Il nous faut 1 opérande
                     if (stack.Count < 1)
                         throw new Exception("Pas assez d'opérandes pour la fonction " + token);
 
                     double x = stack.Pop();
                     double res = 0;
-
-                    // Pour sin, cos, tan : on convertit x (en degrés) -> radians
                     double rad = x * Math.PI / 180.0;
 
                     switch (token)
                     {
-                        case "sin":
-                            res = Math.Sin(rad);
-                            break;
-                        case "cos":
-                            res = Math.Cos(rad);
-                            break;
-                        case "tan":
-                            // Attention à tan(90) par ex => ∞
-                            res = Math.Tan(rad);
-                            break;
+                        case "sin": res = Math.Sin(rad); break;
+                        case "cos": res = Math.Cos(rad); break;
+                        case "tan": res = Math.Tan(rad); break;
                         case "log":
                             if (x <= 0)
                                 throw new Exception("log10 non défini pour " + x);
@@ -406,7 +368,6 @@ namespace Calculatrice
                         default:
                             throw new Exception("Fonction inconnue: " + token);
                     }
-
                     stack.Push(res);
                 }
                 else
@@ -426,20 +387,17 @@ namespace Calculatrice
         // =============================
         private bool IsNumber(string token)
         {
-            // Test rapide si c'est un nombre (double)
-            // Evite log( etc. 
-            // On n'utilise pas TryParse directement sur "sin" etc.
             return double.TryParse(token, NumberStyles.Float, CultureInfo.InvariantCulture, out _);
         }
 
         private bool IsOperator(string token)
         {
-            return token == "+" || token == "-" || token == "*" || token == "/" || token == "^";
+            // AJOUT : on inclut maintenant '%'
+            return token == "+" || token == "-" || token == "*" || token == "/" || token == "^" || token == "%";
         }
 
         private bool IsFunction(string token)
         {
-            // On gère en minuscules
             switch (token)
             {
                 case "sin":
@@ -454,11 +412,7 @@ namespace Calculatrice
 
         private int GetPrecedence(string token)
         {
-            // Priorités : 
-            //   1 pour + -
-            //   2 pour * /
-            //   3 pour ^ (exponent)
-            //   4 pour les fonctions (on les pop direct sur la pile)
+            // On donne une priorité au modulo identique à * et / (2)
             if (IsFunction(token)) return 4;
 
             switch (token)
@@ -468,6 +422,7 @@ namespace Calculatrice
                     return 1;
                 case "*":
                 case "/":
+                case "%":   // AJOUT
                     return 2;
                 case "^":
                     return 3;
@@ -482,7 +437,6 @@ namespace Calculatrice
         {
         }
 
-        // Si tu utilises des boutons 0..9, assure-toi qu'ils appellent NumberButton_Click
         private void btn1_Click(object sender, EventArgs e) => NumberButton_Click(sender, e);
         private void btn2_Click(object sender, EventArgs e) => NumberButton_Click(sender, e);
         private void btn3_Click(object sender, EventArgs e) => NumberButton_Click(sender, e);
@@ -511,20 +465,116 @@ namespace Calculatrice
 
         private void button1_Click(object sender, EventArgs e)
         {
+            // Cos supplémentaire
             if (double.TryParse(txtTotal.Text, out double degrees))
             {
-                // Conversion degré -> radians  
                 double radians = degrees * Math.PI / 180.0;
                 double resultat = Math.Cos(radians);
-
-                // Afficher le résultat
                 txtTotal.Text = resultat.ToString();
             }
             else
             {
                 MessageBox.Show("Veuillez entrer un angle valide (en degrés) pour le cosinus.");
             }
+        }
 
+        // =============================
+        //   AJOUT DES 6 NOUVELLES FONCTIONS
+        // =============================
+
+        // 1) Modulo
+        private void btnModu_Click(object sender, EventArgs e)
+        {
+            // Même approche que +, -, etc. On insère " % " dans l'expression.
+            txtTotal.Text += " % ";
+        }
+
+        // 2) Pourcentage
+        private void btnPer_Click(object sender, EventArgs e)
+        {
+            // Convertit la valeur dans txtTotal en pourcentage => val / 100.
+            if (double.TryParse(txtTotal.Text, out double val))
+            {
+                double result = val / 100.0;
+                txtTotal.Text = result.ToString();
+            }
+            else
+            {
+                MessageBox.Show("Veuillez entrer un nombre valide pour calculer le pourcentage.");
+            }
+        }
+
+        // 3) Conversion en Décimal
+        private void btnDeci_Click(object sender, EventArgs e)
+        {
+            // On suppose que txtTotal contient un entier base 10, ou on retente un parse
+            if (int.TryParse(txtTotal.Text, out int decimalValue))
+            {
+                // réaffiche en base 10
+                txtTotal.Text = decimalValue.ToString();
+            }
+            else
+            {
+                MessageBox.Show("La valeur affichée n'est pas un entier décimal valide.");
+            }
+        }
+
+        // 4) Conversion en Binaire
+        private void btnBinaire_Click(object sender, EventArgs e)
+        {
+            if (int.TryParse(txtTotal.Text, out int decimalValue))
+            {
+                txtTotal.Text = Convert.ToString(decimalValue, 2);
+            }
+            else
+            {
+                MessageBox.Show("La valeur affichée n'est pas un entier décimal valide.");
+            }
+        }
+
+        // 5) Conversion en Octal
+        private void btnOctal_Click(object sender, EventArgs e)
+        {
+            if (int.TryParse(txtTotal.Text, out int decimalValue))
+            {
+                txtTotal.Text = Convert.ToString(decimalValue, 8);
+            }
+            else
+            {
+                MessageBox.Show("La valeur affichée n'est pas un entier décimal valide.");
+            }
+        }
+
+        // 6) Conversion en Hexadécimal
+        private void btnHexad_Click(object sender, EventArgs e)
+        {
+            if (int.TryParse(txtTotal.Text, out int decimalValue))
+            {
+                txtTotal.Text = Convert.ToString(decimalValue, 16).ToUpper();
+            }
+            else
+            {
+                MessageBox.Show("La valeur affichée n'est pas un entier décimal valide.");
+            }
+        }
+
+        private void btnOff_Click(object sender, EventArgs e)
+        {
+            Application.Exit();
+        }
+
+        private void btnHis_Click(object sender, EventArgs e)
+        {
+            if (history.Count == 0)
+            {
+                MessageBox.Show("Aucun calcul effectué pour le moment.", "Historique");
+            }
+            else
+            {
+                // Concaténer chaque ligne de l'historique sur une nouvelle ligne
+                string message = string.Join(Environment.NewLine, history);
+                MessageBox.Show(message, "Historique des 5 derniers calculs");
+            }
         }
     }
 }
